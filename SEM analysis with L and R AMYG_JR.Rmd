@@ -1,0 +1,489 @@
+---
+title: "SEM analysis with left and right amygdala 3-30-2024"
+output: html_document
+date: "2024-03-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(magrittr)
+# import data (with separate left and right amygdala)
+data_lr <- read.csv("/Users/jiveshramduny/Downloads/behav_LR_AMYHIP_T1GM_brain_n2766_sibling_vars_04232024.csv", row.names = 'src_subject_id')
+# rename some columns
+names(data_lr) = c("left_amy_1y",
+                   "right_amy_1y",
+                   "LR_amy_1y",
+                   "ext_1y",
+                   "int_1y",
+                   "motion",
+                   "left_amy_2y",
+                   "right_amy_2y",
+                   "LR_amy_2y",
+                   "ext_2y",
+                   "int_2y",
+                   "left_hip_1y",
+                   "right_hip_1y",
+                   "LR_hip_1y",
+                   "left_hip_2y",
+                   "right_hip_2y",
+                   "LR_hip_2y",
+                   "sibling",
+                   "LR_amy_int_1y",
+                   "LR_hip_int_1y",
+                   "LR_amy_int_2y",
+                   "LR_hip_int_2y",
+                   "LR_amy_vol_1y",
+                   "LR_hip_vol_1y",
+                   "LR_amy_vol_2y",
+                   "LR_hip_vol_2y",
+                   "Subcor_GM_1y",
+                   "ICV_1y",
+                   "Subcor_GM_2y",
+                   "ICV_2y")
+data_lr = scale(data_lr) # standard everything, just for fun
+# import profile data and join to the rest of the data
+profiles <- read.csv("/Users/jiveshramduny/Desktop/profiles for each subject ID (fit of 04-05-2024)", row.names = 'subject.ID')
+profiles$profile = as.factor(profiles$profile) # code latent profile as a factor
+data_lr = cbind(data_lr, profiles) # combine profiles with other data
+
+# create dummy codes for profiles and add to data frame
+# the current dummy codes express the difference between profiles 2:9 and profile 1
+# we might want to define more interpretable custom codes later
+dummy_codes = model.matrix(~ data_lr$profile)[,2:9]
+colnames(dummy_codes) = paste0('pr', 2:9)
+data_lr = cbind(data_lr, dummy_codes)
+```
+
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_amyg = '
+  left_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + left_amy_1y
+  right_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + right_amy_1y
+  ext_2y ~ left_amy_2y + right_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ left_amy_2y + right_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+fit = sem(sem_string_amyg, data_lr) 
+summary(fit, fit.measures = TRUE)
+
+
+```
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_amyg_sibling = '
+  left_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + left_amy_1y
+  right_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + right_amy_1y
+  ext_2y ~ left_amy_2y + right_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ left_amy_2y + right_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+sibling <- as.numeric(data_lr$sibling)
+fit_cluster = sem(sem_string_amyg_sibling, data_lr, cluster = 'sibling') 
+summary(fit_cluster)
+```
+
+```{r}
+# string to define the SEM
+sem_string_bilateral_amyg = '
+  LR_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_amy_1y
+  ext_2y ~ LR_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ LR_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+fit_bilateral_amyg = sem(sem_string_bilateral_amyg, data_lr) 
+summary(fit_bilateral_amyg, fit.measures = TRUE)
+
+```
+
+```{r}
+# string to define the SEM
+sem_string_bilateral_amyg_sibling = '
+  LR_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_amy_1y
+  ext_2y ~ LR_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ LR_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+fit_bilateral_sibling = sem(sem_string_bilateral_amyg_sibling, data_lr, cluster = 'sibling') 
+summary(fit_bilateral_sibling)
+
+```
+
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_amyg_hip = '
+  left_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + left_amy_1y
+  right_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + right_amy_1y
+  left_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + left_hip_1y
+  right_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + right_hip_1y
+  ext_2y ~ left_amy_2y + right_amy_2y + left_hip_2y + right_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ left_amy_2y + right_amy_2y + left_hip_2y + right_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+fit = sem(sem_string_amyg_hip, data_lr) 
+summary(fit)
+```
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_hip = '
+  left_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + left_hip_1y
+  right_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + right_hip_1y
+  ext_2y ~ left_hip_2y + right_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ left_hip_2y + right_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+fit = sem(sem_string_hip, data_lr) 
+summary(fit)
+```
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_hip_sibling = '
+  left_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + left_hip_1y
+  right_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + right_hip_1y
+  ext_2y ~ left_hip_2y + right_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ left_hip_2y + right_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+sibling <- as.numeric(data_lr$sibling)
+fit_hip_sibling = sem(sem_string_hip_sibling, data_lr, cluster = 'sibling') 
+summary(fit_hip_sibling)
+```
+
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_bilateral_hip = '
+  LR_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_hip_1y
+  ext_2y ~ LR_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ LR_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+fit = sem(sem_string_bilateral_hip, data_lr) 
+summary(fit)
+```
+```{r}
+library(lavaan)
+
+# string to define the SEM
+sem_string_bilateral_hip_sibling = '
+  LR_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_hip_1y
+  ext_2y ~ LR_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+  int_2y ~ LR_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+# fit the SEM and output results
+data_lr$sibling <- as.numeric(data_lr$sibling)
+fit_bilateral_hip_sibling = sem(sem_string_bilateral_hip, data_lr, cluster = 'sibling') 
+summary(fit_bilateral_hip_sibling)
+```
+
+```{r}
+# string to define the SEM
+sem_string_compare_bilateral_amyg0 = '
+  LR_amy_2y ~ 0*pr2 + 0*pr3 + 0*pr4 + 0*pr5 + 0*pr6 + 0*pr7 + 0*pr8 + 0*pr9 + LR_amy_1y
+  ext_2y ~ LR_amy_2y + 0*pr2 + 0*pr3 + 0*pr4 + 0*pr5 + 0*pr6 + 0*pr7 + 0*pr8 + 0*pr9 + ext_1y
+  int_2y ~ LR_amy_2y + 0*pr2 + 0*pr3 + 0*pr4 + 0*pr5 + 0*pr6 + 0*pr7 + 0*pr8 + 0*pr9 + int_1y
+'
+# fit the SEM
+fit_bilateral_amyg0 = sem(sem_string_compare_bilateral_amyg0, data_lr) 
+
+# compare to the full model
+library(semTools)
+summary(compareFit(fit_bilateral_amyg0, fit_bilateral_amyg, nested = TRUE))
+```
+```{r}
+# string to define the SEM
+sem_string_compare_bilateral_amyg0_sibling = '
+  LR_amy_2y ~ 0*pr2 + 0*pr3 + 0*pr4 + 0*pr5 + 0*pr6 + 0*pr7 + 0*pr8 + 0*pr9 + LR_amy_1y
+  ext_2y ~ LR_amy_2y + 0*pr2 + 0*pr3 + 0*pr4 + 0*pr5 + 0*pr6 + 0*pr7 + 0*pr8 + 0*pr9 + ext_1y
+  int_2y ~ LR_amy_2y + 0*pr2 + 0*pr3 + 0*pr4 + 0*pr5 + 0*pr6 + 0*pr7 + 0*pr8 + 0*pr9 + int_1y
+'
+# fit the SEM
+sibling <- as.numeric(data_lr$sibling)
+fit_bilateral_amyg0_sibling = sem(sem_string_compare_bilateral_amyg0_sibling, data_lr, cluster = 'sibling') 
+
+# compare to the full model
+library(semTools)
+summary(compareFit(fit_bilateral_amyg0_sibling, fit_bilateral_sibling, nested = TRUE))
+```
+SEM: Bilateral Amygdala with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_bilateral_amyg_one_sibling = '
+LR_amy_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_amy_1y
+ext_2y ~ LR_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ LR_amy_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_bilateral_one_sibling = sem(sem_string_bilateral_amyg_one_sibling, onesib_data_lr) 
+summary(fit_bilateral_one_sibling)
+
+```
+SEM: Bilateral Hippocampus with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_bilateral_hip_one_sibling = '
+LR_hip_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_hip_1y
+ext_2y ~ LR_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ LR_hip_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_bilateral_hip_one_sibling = sem(sem_string_bilateral_hip_one_sibling, onesib_data_lr) 
+summary(fit_bilateral_hip_one_sibling)
+
+```
+
+SEM: Bilateral Amygdala Intensity with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_bilateral_amy_int_one_sibling = '
+LR_amy_int_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_amy_int_1y
+ext_2y ~ LR_amy_int_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ LR_amy_int_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_bilateral_amy_int_one_sibling = sem(sem_string_bilateral_amy_int_one_sibling, onesib_data_lr) 
+summary(fit_bilateral_amy_int_one_sibling)
+
+```
+
+SEM: Bilateral Amygdala Volume with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_bilateral_amy_vol_one_sibling = '
+LR_amy_vol_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_amy_vol_1y
+ext_2y ~ LR_amy_vol_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ LR_amy_vol_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_bilateral_amy_vol_one_sibling = sem(sem_string_bilateral_amy_vol_one_sibling, onesib_data_lr) 
+summary(fit_bilateral_amy_vol_one_sibling)
+
+```
+
+SEM: Bilateral Hippocampal Volume with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_bilateral_hip_vol_one_sibling = '
+LR_hip_vol_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + LR_hip_vol_1y
+ext_2y ~ LR_hip_vol_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ LR_hip_vol_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_bilateral_hip_vol_one_sibling = sem(sem_string_bilateral_hip_vol_one_sibling, onesib_data_lr) 
+summary(fit_bilateral_hip_vol_one_sibling)
+```
+SEM: Subcortical GM Volume with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_subcor_vol_one_sibling = '
+Subcor_GM_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + Subcor_GM_1y
+ext_2y ~ Subcor_GM_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ Subcor_GM_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_subcor_vol_one_sibling = sem(sem_string_subcor_vol_one_sibling, onesib_data_lr) 
+summary(fit_subcor_vol_one_sibling, fit.measures = TRUE)
+
+# Extract parameter estimates
+params <- parameterEstimates(fit_subcor_vol_one_sibling)
+
+print(params)
+
+# Find the unstandardized coefficients for the paths
+pr3_to_Subcor <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr3", "est"]
+pr4_to_Subcor <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr4", "est"]
+Subcor_to_int <- params[params$lhs == "int_2y" & params$op == "~" & params$rhs == "Subcor_GM_2y", "est"]
+
+# Calculate the indirect effects
+indirect_effect_pr3 <- pr3_to_Subcor * Subcor_to_int
+indirect_effect_pr4 <- pr4_to_Subcor * Subcor_to_int
+
+# Print indirect effects
+print(indirect_effect_pr3)
+print(indirect_effect_pr4)
+
+# Compute standard errors of the indirect effects
+pr3_to_Subcor_se <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr3", "se"]
+pr4_to_Subcor_se <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr4", "se"]
+Subcor_to_int_se <- params[params$lhs == "int_2y" & params$op == "~" & params$rhs == "Subcor_GM_2y", "se"]
+
+# Calculate z-scores
+z_score_pr3 <- indirect_effect_pr3 / pr3_to_Subcor_se
+z_score_pr4 <- indirect_effect_pr4 / pr4_to_Subcor_se
+
+# Define critical value for a two-tailed test (e.g., alpha = 0.05)
+critical_value <- qnorm(1 - (0.05 / 2))
+
+# Check significance
+if (abs(z_score_pr3) > critical_value) {
+  print("Indirect effect of pr3 on int_2y through Subcor_GM_2y is significant")
+} else {
+  print("Indirect effect of pr3 on int_2y through Subcor_GM_2y is not significant")
+}
+
+if (abs(z_score_pr4) > critical_value) {
+  print("Indirect effect of pr4 on int_2y through Subcor_GM_2y is significant")
+} else {
+  print("Indirect effect of pr4 on int_2y through Subcor_GM_2y is not significant")
+}
+
+
+# Compute standard errors of the indirect effects
+pr3_to_Subcor_se <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr3", "se"]
+pr4_to_Subcor_se <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr4", "se"]
+Subcor_to_int_se <- params[params$lhs == "int_2y" & params$op == "~" & params$rhs == "Subcor_GM_2y", "se"]
+
+# Compute the standard error of the indirect effects using the delta method
+indirect_effect_se_pr3 <- sqrt(indirect_effect_pr3^2 * (pr3_to_Subcor_se^2 + Subcor_to_int_se^2))
+indirect_effect_se_pr4 <- sqrt(indirect_effect_pr4^2 * (pr4_to_Subcor_se^2 + Subcor_to_int_se^2))
+
+# Calculate z-scores
+z_score_pr3 <- indirect_effect_pr3 / indirect_effect_se_pr3
+z_score_pr4 <- indirect_effect_pr4 / indirect_effect_se_pr4
+
+# Define critical value for a two-tailed test (e.g., alpha = 0.05)
+critical_value <- qnorm(1 - (0.05 / 2))
+
+# Check significance and calculate confidence intervals
+ci_pr3 <- c(indirect_effect_pr3 - critical_value * indirect_effect_se_pr3,
+            indirect_effect_pr3 + critical_value * indirect_effect_se_pr3)
+
+ci_pr4 <- c(indirect_effect_pr4 - critical_value * indirect_effect_se_pr4,
+            indirect_effect_pr4 + critical_value * indirect_effect_se_pr4)
+
+# Print confidence intervals
+print(paste("95% CI for indirect effect of pr3:", ci_pr3))
+print(paste("95% CI for indirect effect of pr4:", ci_pr4))
+
+# Define the number of bootstrap samples
+n_bootstraps <- 1000
+
+# Initialize vector to store bootstrap estimates of the indirect effect
+bootstrap_estimates <- numeric(n_bootstraps)
+
+# Perform bootstrapping
+for (i in 1:n_bootstraps) {
+    # Generate bootstrap sample by resampling with replacement
+    bootstrap_sample <- onesib_data_lr[sample(nrow(onesib_data_lr), replace = TRUE), ]
+    
+    # Fit the SEM model to the bootstrap sample
+    bootstrap_fit <- sem(sem_string_subcor_vol_one_sibling, data = bootstrap_sample)
+    
+    # Extract parameter estimates for the indirect effect
+    params <- parameterEstimates(bootstrap_fit)
+    pr4_to_Subcor <- params[params$lhs == "Subcor_GM_2y" & params$op == "~" & params$rhs == "pr4", "est"]
+    Subcor_to_int <- params[params$lhs == "int_2y" & params$op == "~" & params$rhs == "Subcor_GM_2y", "est"]
+    
+    # Calculate indirect effect for the bootstrap sample
+    bootstrap_indirect_effect <- pr4_to_Subcor * Subcor_to_int
+    
+    # Store bootstrap estimate of the indirect effect
+    bootstrap_estimates[i] <- bootstrap_indirect_effect
+}
+
+# Calculate confidence interval
+ci <- quantile(bootstrap_estimates, c(0.025, 0.975))
+
+# Print confidence interval
+print(ci)
+
+```
+
+SEM: ICV with one sibling
+```{r}
+#randomly drop a sibling
+#first must generate random list of IDs we want to keep
+set.seed(718)
+onesib_data_lr <- data_lr %>% slice(sample(n())) %>% distinct(sibling, .keep_all = TRUE)
+
+##only keep rows with subject ID in onesib_ids
+#onesib_df<-df %>%
+#     filter(src_subject_id %in% onesib_ids$src_subject_id)
+
+#string to define the SEM
+sem_string_ICV_one_sibling = '
+ICV_2y ~ pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ICV_1y
+ext_2y ~ ICV_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + ext_1y
+int_2y ~ ICV_2y + pr2 + pr3 + pr4 + pr5 + pr6 + pr7 + pr8 + pr9 + int_1y
+'
+
+# fit the SEM and output results
+fit_ICV_one_sibling = sem(sem_string_ICV_one_sibling, onesib_data_lr) 
+summary(fit_ICV_one_sibling)
+```
+
+```
